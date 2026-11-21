@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <title>Naming Standardizer</title>
+</head>
+<body>
+    <div id="NamingStandardizerPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-button,emby-select,emby-input">
+        <div data-role="content">
+            <div class="content-primary">
+                <style>
+                    #NamingStandardizerPage .nsBox { margin: 0 0 2em; padding: 1em; border: 1px solid rgba(128, 128, 128, .35); border-radius: .4em; }
+                    #NamingStandardizerPage .nsBox h3 { margin: 0 0 .8em; }
+                    #NamingStandardizerPage .nsRow { display: flex; flex-wrap: wrap; gap: 1em; align-items: flex-end; }
+                    #NamingStandardizerPage .nsRow > div { flex: 1 1 12em; min-width: 0; }
+                    #NamingStandardizerPage .nsStatus { margin: .8em 0 0; padding: .8em 1em; border-radius: .4em; background: rgba(128, 128, 128, .15); }
+                    #NamingStandardizerPage .nsButtons { display: flex; flex-wrap: wrap; gap: .8em; align-items: center; margin-top: 1em; }
+                    #NamingStandardizerPage .nsList { max-height: 40em; overflow: auto; margin: 1em 0; border: 1px solid rgba(128, 128, 128, .25); border-radius: .3em; }
+                    #NamingStandardizerPage .nsPlan { display: flex; gap: .7em; padding: .6em .7em; border-bottom: 1px solid rgba(128, 128, 128, .18); }
+                    #NamingStandardizerPage .nsPlan input[type=checkbox] { width: 1.2em; height: 1.2em; flex: none; margin: .15em 0 0; }
+                    #NamingStandardizerPage .nsBody { flex: 1 1 auto; min-width: 0; }
+                    #NamingStandardizerPage .nsTitle { font-weight: 600; word-break: break-word; }
+                    #NamingStandardizerPage .nsTag { display: inline-block; margin-left: .5em; padding: 0 .4em; border-radius: .3em; font-size: .8em; font-weight: 400; background: rgba(128, 128, 128, .3); }
+                    #NamingStandardizerPage .nsMove { font-family: monospace; font-size: .85em; word-break: break-all; margin-top: .2em; }
+                    #NamingStandardizerPage .nsMove .nsArrow { opacity: .6; padding: 0 .4em; }
+                    #NamingStandardizerPage .nsSmall { font-size: .85em; opacity: .75; word-break: break-word; margin-top: .2em; }
+                    #NamingStandardizerPage .nsWarn { font-size: .9em; margin-top: .35em; padding: .3em .5em; border-radius: .3em; background: rgba(230, 150, 0, .22); }
+                    #NamingStandardizerPage .nsBlocked { font-size: .9em; margin-top: .35em; padding: .3em .5em; border-radius: .3em; background: rgba(204, 51, 51, .2); }
+                    #NamingStandardizerPage .nsDisabled .nsTitle { opacity: .6; }
+                    #NamingStandardizerPage .nsLog { max-height: 22em; overflow: auto; margin: 0; padding: .8em; border-radius: .3em; background: rgba(0, 0, 0, .35); font-family: monospace; font-size: .85em; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+                    #NamingStandardizerPage details summary { cursor: pointer; }
+                </style>
+
+                <div class="verticalSection">
+                    <h2 class="sectionTitle">Naming Standardizer</h2>
+                    <div class="fieldDescription" style="margin-bottom: 1.5em;">
+                        Bringt Dateinamen auf Jellyfins Benennungsstandard, damit mehrere Dateien eines Films oder einer Folge als Versionen
+                        erkannt werden. <b>Filme:</b> jede Videodatei beginnt mit dem Ordnernamen. Eine einzelne Datei heißt wie der Ordner,
+                        mehrere bekommen „Ordnername-Bezeichnung“, z. B. <code>8 Mile 2002-HEVC.mkv</code>. <b>Serien:</b> jede Folge trägt
+                        Staffel und Folge im Namen, z. B. <code>Serie S01E05.mkv</code>. Ordner werden nicht umbenannt. Untertitel, NFO,
+                        Bilder und Extras wandern mit, der Gesehen-Status wird übertragen. Was schon passt, bleibt unverändert.
+                        Umbenannt wird nur, was du in der Vorschau auswählst.
+                    </div>
+                </div>
+
+                <div class="nsBox">
+                    <h3>1. Bibliothek prüfen</h3>
+                    <div class="fieldDescription">Liest alle Film- und Serienordner und plant die Umbenennungen. Dabei wird noch nichts verändert.</div>
+                    <div class="nsButtons">
+                        <button is="emby-button" type="button" id="nsScan" class="raised button-submit emby-button"><span>Bibliothek prüfen</span></button>
+                    </div>
+                    <div id="nsScanStatus" class="nsStatus">Noch nicht geprüft.</div>
+                </div>
+
+                <div class="nsBox">
+                    <h3>2. Vorschau</h3>
+                    <div class="nsRow">
+                        <div>
+                            <label class="selectLabel" for="nsKind">Art</label>
+                            <select is="emby-select" id="nsKind" class="emby-select-withcolor emby-select">
+                                <option value="">Filme und Serien</option>
+                                <option value="Film">Nur Filme</option>
+                                <option value="Serie">Nur Serien</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="selectLabel" for="nsShow">Anzeigen</label>
+                            <select is="emby-select" id="nsShow" class="emby-select-withcolor emby-select">
+                                <option value="open">Umbenennbar</option>
+                                <option value="warn">Umbenennbar, bitte prüfen</option>
+                                <option value="blocked">Nicht möglich</option>
+                                <option value="all">Alle</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="inputLabel inputLabelUnfocused" for="nsFilter">Suche</label>
+                            <input is="emby-input" id="nsFilter" type="text" autocomplete="off" />
+                        </div>
+                    </div>
+                    <div id="nsList" class="nsList"></div>
+                    <div id="nsListInfo" class="nsSmall"></div>
+                    <div class="nsButtons">
+                        <button is="emby-button" type="button" id="nsSelectShown" class="raised emby-button"><span>Alle angezeigten auswählen</span></button>
+                        <button is="emby-button" type="button" id="nsSelectNone" class="raised emby-button"><span>Auswahl aufheben</span></button>
+                    </div>
+                </div>
+
+                <div class="nsBox">
+                    <h3>3. Umbenennen</h3>
+                    <div id="nsSelection" class="fieldDescription">Nichts ausgewählt.</div>
+                    <div class="nsButtons">
+                        <button is="emby-button" type="button" id="nsApply" class="raised button-submit emby-button"><span>Ausgewählte umbenennen</span></button>
+                    </div>
+                    <div id="nsApplyStatus" class="nsStatus" style="display: none;"></div>
+                </div>
+
+                <div class="nsBox">
+                    <h3>Protokoll</h3>
+                    <pre id="nsLog" class="nsLog">Noch keine Einträge.</pre>
+                </div>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            (function () {
+                var page = document.querySelector('#NamingStandardizerPage');
+                var $ = function (selector) { return page.querySelector(selector); };
+                var maxShown = 400;
+
+                var plans = [];
+                var selected = {};
+                var timer = null;
+                var logSeq = 0;
+                var logLines = [];
+                var wasBusy = false;
+
+                // Jellyfin setzt Dialogtexte als HTML ein. Datei- und Ordnernamen duerfen dort nur als Text ankommen.
+                function plain(text) {
+                    return String(text == null ? '' : text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                }
+
+                function notify(message) {
+                    Dashboard.alert({ title: 'Naming Standardizer', message: plain(message) });
+                }
+
+                function request(method, path, body) {
+                    return fetch(ApiClient.getUrl('NamingStandardizer/' + path), {
+                        method: method,
+                        headers: {
+                            'Authorization': 'MediaBrowser Token="' + ApiClient.accessToken() + '"',
+                            'Content-Type': 'application/json'
+                        },
+                        body: body ? JSON.stringify(body) : undefined
+                    }).then(function (response) {
+                        if (response.status === 204) {
+                            return {};
+                        }
+                        return response.json().catch(function () {
+                            return {};
+                        }).then(function (data) {
+                            if (!response.ok) {
+                                throw new Error(data.Message || data.title || ('HTTP ' + response.status));
+                            }
+                            return data;
+                        });
+                    });
+                }
+
+                function showError(error) {
+                    Dashboard.hideLoadingMsg();
+                    notify(error.message);
+                }
+
+                function el(tag, className, text) {
+                    var node = document.createElement(tag);
+                    if (className) {
+                        node.className = className;
+                    }
+                    if (text !== undefined && text !== null) {
+                        node.textContent = text;
+                    }
+                    return node;
+                }
+
+                function category(plan) {
+                    return plan.Blocked ? 'blocked' : (plan.Warning ? 'warn' : 'open');
+                }
+
+                function visiblePlans() {
+                    var kind = $('#nsKind').value;
+                    var show = $('#nsShow').value;
+                    var text = $('#nsFilter').value.trim().toLowerCase();
+                    return plans.filter(function (plan) {
+                        if (kind && plan.Kind !== kind) {
+                            return false;
+                        }
+                        var cat = category(plan);
+                        if (show === 'open' && cat === 'blocked') {
+                            return false;
+                        }
+                        if (show === 'warn' && cat !== 'warn') {
+                            return false;
+                        }
+                        if (show === 'blocked' && cat !== 'blocked') {
+                            return false;
+                        }
+                        if (text) {
+                            var haystack = (plan.Display + ' ' + plan.Videos.map(function (v) { return v.From + ' ' + v.To; }).join(' ')).toLowerCase();
+                            return haystack.indexOf(text) !== -1;
+                        }
+                        return true;
+                    });
+                }
+
+                function moveLine(entry) {
+                    var line = el('div', 'nsMove');
+                    line.appendChild(el('span', null, entry.From));
+                    line.appendChild(el('span', 'nsArrow', '→'));
+                    line.appendChild(el('span', null, entry.To));
+                    return line;
+                }
+
+                function renderPlans() {
+                    var list = $('#nsList');
+                    list.textContent = '';
+                    var shown = visiblePlans();
+                    if (!shown.length) {
+                        list.appendChild(el('div', 'nsPlan', plans.length ? 'Keine Einträge für diese Auswahl.' : 'Noch keine Vorschau. Bitte zuerst die Bibliothek prüfen.'));
+                    }
+
+                    shown.slice(0, maxShown).forEach(function (plan) {
+                        var row = el('label', 'nsPlan' + (plan.Blocked ? ' nsDisabled' : ''));
+                        var box = el('input');
+                        box.type = 'checkbox';
+                        box.disabled = !!plan.Blocked;
+                        box.checked = !!selected[plan.Id];
+                        box.addEventListener('change', function () {
+                            if (box.checked) {
+                                selected[plan.Id] = true;
+                            } else {
+                                delete selected[plan.Id];
+                            }
+                            renderSelection();
+                        });
+                        row.appendChild(box);
+
+                        var body = el('div', 'nsBody');
+                        var title = el('div', 'nsTitle', plan.Display);
+                        title.appendChild(el('span', 'nsTag', plan.Kind));
+                        body.appendChild(title);
+                        plan.Videos.forEach(function (entry) {
+                            body.appendChild(moveLine(entry));
+                        });
+                        if (plan.Companions.length) {
+                            var details = el('details', 'nsSmall');
+                            details.appendChild(el('summary', null, plan.Companions.length + ' Begleitdatei(en) wandern mit'));
+                            plan.Companions.forEach(function (entry) {
+                                details.appendChild(moveLine(entry));
+                            });
+                            body.appendChild(details);
+                        }
+                        if (plan.Kept.length) {
+                            body.appendChild(el('div', 'nsSmall', 'Bleibt unverändert: ' + plan.Kept.join(', ')));
+                        }
+                        if (plan.Warning) {
+                            body.appendChild(el('div', 'nsWarn', plan.Warning));
+                        }
+                        if (plan.Blocked) {
+                            body.appendChild(el('div', 'nsBlocked', plan.Blocked));
+                        }
+                        row.appendChild(body);
+                        list.appendChild(row);
+                    });
+
+                    $('#nsListInfo').textContent = shown.length > maxShown
+                        ? 'Angezeigt werden ' + maxShown + ' von ' + shown.length + ' Einträgen. Mit Suche oder Filter eingrenzen.'
+                        : (shown.length ? shown.length + ' Einträge.' : '');
+                    renderSelection();
+                }
+
+                function renderSelection() {
+                    var ids = Object.keys(selected);
+                    var files = 0;
+                    plans.forEach(function (plan) {
+                        if (selected[plan.Id]) {
+                            files += plan.Videos.length;
+                        }
+                    });
+                    $('#nsSelection').textContent = ids.length
+                        ? ids.length + (ids.length === 1 ? ' Ordner' : ' Ordner') + ' mit ' + files + ' Videodatei(en) ausgewählt.'
+                        : 'Nichts ausgewählt.';
+                    $('#nsApply').disabled = ids.length === 0;
+                }
+
+                function loadPlans() {
+                    return request('GET', 'Plans').then(function (result) {
+                        plans = result || [];
+                        var known = {};
+                        plans.forEach(function (plan) {
+                            known[plan.Id] = plan;
+                        });
+                        // Vorausgewaehlt: was sicher passt. Bisherige Auswahl bleibt, soweit es den Eintrag noch gibt.
+                        var keep = {};
+                        Object.keys(selected).forEach(function (id) {
+                            if (known[id] && !known[id].Blocked) {
+                                keep[id] = true;
+                            }
+                        });
+                        selected = keep;
+                        renderPlans();
+                    });
+                }
+
+                function preselect() {
+                    selected = {};
+                    plans.forEach(function (plan) {
+                        if (plan.Recommended && !plan.Blocked) {
+                            selected[plan.Id] = true;
+                        }
+                    });
+                    renderPlans();
+                }
+
+                function refreshStatus() {
+                    return request('GET', 'Status').then(function (status) {
+                        var scan = status.Scan;
+                        var box = $('#nsScanStatus');
+                        if (scan.Running) {
+                            box.textContent = 'Prüfe … ' + scan.Checked + ' von ' + (scan.Total || '?') + ' Ordnern.';
+                        } else if (scan.Error) {
+                            box.textContent = 'Prüfung fehlgeschlagen: ' + scan.Error;
+                        } else if (scan.Finished) {
+                            box.textContent = 'Zuletzt geprüft: ' + new Date(scan.Finished).toLocaleString() + '. '
+                                + scan.Total + ' Ordner, davon passen ' + scan.Standard + ' schon. '
+                                + status.Open + ' lassen sich standardisieren, ' + status.Blocked + ' nicht.'
+                                + (scan.Flat ? ' ' + scan.Flat + ' Film(e) liegen ohne eigenen Ordner direkt in der Bibliothek und werden nicht bearbeitet.' : '');
+                        }
+                        $('#nsScan').disabled = scan.Running || status.Apply.Running;
+
+                        var apply = status.Apply;
+                        var applyBox = $('#nsApplyStatus');
+                        if (apply.Total) {
+                            applyBox.style.display = '';
+                            applyBox.textContent = (apply.Running ? 'Benenne um … ' : 'Fertig: ') + apply.Done + ' von ' + apply.Total + ' Ordnern'
+                                + (apply.Failed ? ', ' + apply.Failed + ' übersprungen (Grund im Protokoll)' : '') + '.';
+                        }
+                        $('#nsApply').disabled = apply.Running || scan.Running || Object.keys(selected).length === 0;
+
+                        var busy = scan.Running || apply.Running;
+                        if (wasBusy && !busy) {
+                            var scanEnded = !scan.Running;
+                            loadPlans().then(function () {
+                                if (scanEnded && !apply.Total) {
+                                    preselect();
+                                }
+                            }).catch(function () {});
+                        }
+                        wasBusy = busy;
+                    });
+                }
+
+                function refreshLog() {
+                    return request('GET', 'Log?after=' + logSeq).then(function (result) {
+                        if (!result.Lines.length) {
+                            return;
+                        }
+                        result.Lines.forEach(function (line) {
+                            logLines.push(line.Text);
+                            logSeq = line.Seq;
+                        });
+                        logLines = logLines.slice(-400);
+                        var log = $('#nsLog');
+                        var atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
+                        log.textContent = logLines.join('\n');
+                        if (atBottom) {
+                            log.scrollTop = log.scrollHeight;
+                        }
+                    });
+                }
+
+                $('#nsScan').addEventListener('click', function () {
+                    request('POST', 'Scan').then(function () {
+                        wasBusy = true;
+                        $('#nsApplyStatus').style.display = 'none';
+                        return refreshStatus();
+                    }).catch(showError);
+                });
+
+                $('#nsKind').addEventListener('change', renderPlans);
+                $('#nsShow').addEventListener('change', renderPlans);
+                $('#nsFilter').addEventListener('input', renderPlans);
+
+                $('#nsSelectShown').addEventListener('click', function () {
+                    visiblePlans().forEach(function (plan) {
+                        if (!plan.Blocked) {
+                            selected[plan.Id] = true;
+                        }
+                    });
+                    renderPlans();
+                });
+
+                $('#nsSelectNone').addEventListener('click', function () {
+                    selected = {};
+                    renderPlans();
+                });
+
+                $('#nsApply').addEventListener('click', function () {
+                    var ids = Object.keys(selected);
+                    if (!ids.length) {
+                        return;
+                    }
+                    var warned = plans.filter(function (plan) { return selected[plan.Id] && plan.Warning; }).length;
+                    var message = ids.length + ' Ordner jetzt umbenennen?'
+                        + (warned ? ' Darunter ' + warned + ' mit Hinweis – bitte vorher prüfen.' : '')
+                        + ' Andere Programme (z. B. Radarr, Sonarr) sehen die neuen Namen erst nach einem erneuten Einlesen.';
+                    Dashboard.confirm(plain(message), 'Naming Standardizer', function (confirmed) {
+                        if (!confirmed) {
+                            return;
+                        }
+                        request('POST', 'Apply', { Ids: ids }).then(function () {
+                            selected = {};
+                            wasBusy = true;
+                            return refreshStatus();
+                        }).catch(showError);
+                    });
+                });
+
+                function stopTimer() {
+                    if (timer) {
+                        clearInterval(timer);
+                        timer = null;
+                    }
+                }
+
+                page.addEventListener('pageshow', function () {
+                    logSeq = 0;
+                    logLines = [];
+                    Promise.all([refreshStatus(), loadPlans(), refreshLog()]).catch(showError);
+                    stopTimer();
+                    timer = setInterval(function () {
+                        if (!document.body.contains(page)) {
+                            stopTimer();
+                            return;
+                        }
+                        if (!document.hidden && page.offsetParent !== null) {
+                            refreshStatus().catch(function () {});
+                            refreshLog().catch(function () {});
+                        }
+                    }, 2000);
+                });
+                page.addEventListener('pagehide', stopTimer);
+                page.addEventListener('viewhide', stopTimer);
+            })();
+        </script>
+    </div>
+</body>
+</html>

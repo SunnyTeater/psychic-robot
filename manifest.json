@@ -1,0 +1,20 @@
+[
+  {
+    "guid": "2c6cce90-832f-4654-a0ac-44f1449f3039",
+    "name": "Naming Standardizer",
+    "overview": "Bringt Dateinamen von Filmen und Folgen auf Jellyfins Standard, damit Versionen erkannt werden",
+    "description": "Prüft die Bibliothek und benennt Filme (Datei beginnt mit dem Ordnernamen, z. B. „Ordner-HEVC“) und Folgen („Serie S01E05“) nach Jellyfins Regeln um. Vorschau mit Auswahl, Begleitdateien wandern mit, Gesehen-Status wird übertragen, Ordner bleiben unverändert.",
+    "owner": "SunnyTeater",
+    "category": "General",
+    "versions": [
+      {
+        "version": "1.0.0.0",
+        "changelog": "Erste Version: Prüfung der Bibliothek mit Vorschau, Umbenennen auf Knopfdruck für Filme und Serien, Begleitdateien und Gesehen-Status, Journal für Absturzsicherheit.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/SunnyTeater/psychic-robot/releases/download/v1.0.0.0/naming-standardizer_1.0.0.0.zip",
+        "checksum": "b47bb39812d38e224c2baa225cba789f",
+        "timestamp": "2026-11-21T12:00:00Z"
+      }
+    ]
+  }
+]
